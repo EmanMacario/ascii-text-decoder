@@ -13,7 +13,6 @@
 #include <stdbool.h>
 
 #define DEBUG 0
-#define MAXMODELSIZE    128
 #define MAXCODEWORDSIZE 8
 
 typedef char codeword_t[MAXCODEWORDSIZE+1];
@@ -29,16 +28,14 @@ typedef struct model {
 
 /* Helper function prototypes */
 model_t *new_model(void);
+void read_model(model_t *model, FILE *fp);
 void update_model(model_t *model, int symbol, char codeword[]);
 void print_model(model_t *model);
 void decode_text(model_t *model);
-void print_stdin(void);
 
+/* Main Program */
 int
 main(int argc, char *argv[]) {
-	int c;
-	codeword_t codeword;
-	model_t *model = new_model();
 
 	/* Read in commandline arguments */
 	if (argc < 2) {
@@ -47,10 +44,55 @@ main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	/* Create a new empty model */
+	model_t *model = new_model();
+
+	/* Create a handle for the text file containing the model */
 	FILE *fp = fopen(argv[1], "r");
 	assert(fp);
 
-	int i, symbol, newline_last = 1;
+	/* Read in the model to our struct */
+	read_model(model, fp);
+
+	/* Close the handle to that file */
+	fclose(fp);
+
+	/* Set DEBUG to 0 to print the model we have so far */
+	if (DEBUG) {
+		print_model(model);
+	}
+	
+	/* Now decode the encoded ASCII text, read in from stdin */
+	decode_text(model);
+
+	/* Job done! */
+	return 0;
+}
+
+
+model_t 
+*new_model(void) {
+	model_t *model;
+
+	model = malloc(sizeof(*model));
+	assert(model);
+
+	model->codewords = malloc(sizeof(*model->codewords));
+	model->symbols   = malloc(sizeof(*model->symbols));
+	assert(model->codewords && model->symbols);
+
+	/* Currently we have zero symbols, but can fit one symbol in our model */
+	model->currsize = 0;
+	model->maxsize = 1;
+
+	return model;
+}
+
+
+void read_model(model_t *model, FILE *fp) {
+	int i, c, symbol, newline_last = 1;
+	codeword_t codeword;
+
 	while ((c=fgetc(fp)) && c!=EOF) {
 		if (newline_last) {
 			/* Get the symbol */
@@ -77,40 +119,8 @@ main(int argc, char *argv[]) {
 			newline_last = 1;
 		}
 	}
-
-	/* Close the handle to that file */
-	fclose(fp);
-
-	/* Print the model we have so far */
-	if (DEBUG) {
-		print_model(model);
-	}
-	
-	/* Now decode the encoded ASCII text! */
-	decode_text(model);
-
-	/* Job done! */
-	return 0;
 }
 
-
-model_t 
-*new_model(void) {
-	model_t *model;
-
-	model = malloc(sizeof(*model));
-	assert(model);
-
-	model->codewords = malloc(sizeof(*model->codewords));
-	model->symbols   = malloc(sizeof(*model->symbols));
-	assert(model->codewords && model->symbols);
-
-	/* Currently we have zero symbols, but can fit one symbol in our model */
-	model->currsize = 0;
-	model->maxsize = 1;
-
-	return model;
-}
 
 void 
 update_model(model_t *model, int symbol, char codeword[]) {
