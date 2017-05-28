@@ -3,7 +3,7 @@ An implementation of an ASCII text decoder written in C
 (Note: Only works with prefix free codes)
 
 To compile: 
-Go to Windows cmd, then type 
+Go to your commandline, then type 
     "gcc -Wall -o decoder.exe dynamic-decode.c"
 
 To use:
